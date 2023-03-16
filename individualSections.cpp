@@ -7,7 +7,7 @@ static constexpr double tau = 0.0001;
 static constexpr double eps = 0.000001;
 static constexpr int PROGRAM_LAUNCHES_NUM = 20;
 
-double *makeAndReleaseMatrixA() {
+double *createAndReleaseMatrixA() {
     double *matrix = new double[N * N];
 
     for (int i = 0; i < N; ++i) {
@@ -24,7 +24,7 @@ double *makeAndReleaseMatrixA() {
     return matrix;
 }
 
-double *makeAndReleaseVectorWithNum(double value) {
+double *createAndReleaseVectorWithNum(double value) {
     double *vector = new double[N];
     for (int i = 0; i < N; ++i) {
         vector[i] = (value);
@@ -44,9 +44,9 @@ void printVector(double *vector) {
 
 int main() {
     for (int k = 1; k < PROGRAM_LAUNCHES_NUM; ++k) {
-        double *matrixA = makeAndReleaseMatrixA();
-        double *vectorB = makeAndReleaseVectorWithNum(N + 1.0);
-        double *vectorX = makeAndReleaseVectorWithNum(0);
+        double *matrixA = createAndReleaseMatrixA();
+        double *vectorB = createAndReleaseVectorWithNum(N + 1.0);
+        double *vectorX = createAndReleaseVectorWithNum(0);
         double *previousIterationVectorX = new double[N]();
 
         double normOfB = 0;
