@@ -7,8 +7,8 @@ static constexpr double tau = 0.0001;
 static constexpr double eps = 0.000001;
 static constexpr int PROGRAM_LAUNCHES_NUM = 20;
 
-double *makeMatrixA() {
-    auto *matrix = new double[N * N];
+double *makeAndReleaseMatrixA() {
+    double *matrix = new double[N * N];
 
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
@@ -24,8 +24,8 @@ double *makeMatrixA() {
     return matrix;
 }
 
-double *makeVector(double value) {
-    auto *vector = new double[N];
+double *makeAndReleaseVectorWithNum(double value) {
+    double *vector = new double[N];
     for (int i = 0; i < N; ++i) {
         vector[i] = (value);
     }
@@ -44,13 +44,13 @@ void printVector(double *vector) {
 
 int main() {
     for (int k = 1; k < PROGRAM_LAUNCHES_NUM; ++k) {
-        auto *matrixA = makeMatrixA();
-        auto *vectorB = makeVector(N + 1.0);
-        auto *vectorX = makeVector(0);
-        auto *vectorXBuff = new double[N]();
+        double *matrixA = makeAndReleaseMatrixA();
+        double *vectorB = makeAndReleaseVectorWithNum(N + 1.0);
+        double *vectorX = makeAndReleaseVectorWithNum(0);
+        double *previousIterationVectorX = new double[N]();
 
-        double normB = 0;
-        double normV = 0;
+        double normOfB = 0;
+        double normOfV = 0;
         double newNormCriteria = 0;
         bool criteria = false;
 
@@ -59,36 +59,36 @@ int main() {
         omp_set_num_threads(k);
         double startTime = omp_get_wtime();
 
-#pragma omp parallel for schedule(static) reduction(+:normB)
+#pragma omp parallel for schedule(static) reduction(+:normOfB)
         for (int i = 0; i < N; ++i) {
-            normB += vectorB[i] * vectorB[i];
+            normOfB += vectorB[i] * vectorB[i];
         }
 
-        normB = sqrt(normB);
+        normOfB = sqrt(normOfB);
 
 
         while (!criteria) {
-#pragma omp parallel for schedule(static) reduction(+:normV)
+#pragma omp parallel for schedule(static) reduction(+:normOfV)
             for (int i = 0; i < N; ++i) {
-                double valueX = 0;
+                double oneCeilValueOfX = 0;
 
-                const double *m = matrixA + i * N;
+                const double *oneRowOfMatrix = matrixA + i * N;
                 for (int j = 0; j < N; ++j) {
-                    valueX += m[j] * vectorX[j];
+                    oneCeilValueOfX += oneRowOfMatrix[j] * vectorX[j];
                 }
 
-                valueX -= vectorB[i];
+                oneCeilValueOfX -= vectorB[i];
 
-                vectorXBuff[i] = vectorX[i] - valueX * tau;
-                normV += valueX * valueX;
+                previousIterationVectorX[i] = vectorX[i] - oneCeilValueOfX * tau;
+                normOfV += oneCeilValueOfX * oneCeilValueOfX;
             }
 
-            std::swap(vectorX, vectorXBuff);
+            std::swap(vectorX, previousIterationVectorX);
 
-            normV = sqrt(normV);
-            newNormCriteria = normV / normB;
+            normOfV = sqrt(normOfV);
+            newNormCriteria = normOfV / normOfB;
             criteria = newNormCriteria < eps;
-            normV = 0;
+            normOfV = 0;
         }
 
 
@@ -100,7 +100,7 @@ int main() {
         delete[] matrixA;
         delete[] vectorX;
         delete[] vectorB;
-        delete[] vectorXBuff;
+        delete[] previousIterationVectorX;
     }
     return 0;
 }
